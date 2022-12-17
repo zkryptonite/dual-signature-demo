@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SET</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <script type="text/javascript" th:src="@{/webjars/jquery/jquery.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/bootstrap/js/bootstrap.min.js}"></script>
+    <style>
+        .nav-tabs .nav-link.active {
+            background-color: #d63aff;
+            color: #fff;
+            border: 3px solid #d63aff;
+        }
+
+        .nav-tabs .nav-link {
+            background-color: #fff;
+            color: #d63aff;
+            margin-right: 2rem;
+            padding-left: 3rem;
+            padding-right: 3rem;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border: 3px solid #d63aff;
+        }
+
+        #next-step, #previous-step {
+            background-color: #d63aff;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div>
+        <ul class="nav nav-tabs">
+            <li class="nav-item"><a class="nav-link customer-tab active" data-bs-toggle="tab"
+                                    href="#customer">Customer</a></li>
+            <li class="nav-item"><a class="nav-link merchant-tab" data-bs-toggle="tab" href="#merchant">Merchant</a>
+            </li>
+            <li class="nav-item"><a class="nav-link bank-tab" data-bs-toggle="tab" href="#bank">Bank</a></li>
+        </ul>
+
+        <div class="tab-content mt-5">
+            <div id="customer" class="tab-pane active" style="width: 850px; max-height: 300px"></div>
+            <div id="merchant" class="tab-pane fade" style="width: 850px; max-height: 300px"></div>
+            <div id="bank" class="tab-pane fade" style="width: 850px; max-height: 300px"></div>
+        </div>
+
+        <div class="mt-lg-5">
+            <button id="previous-step" class="btn btn-primary" style="border: none">Previous Step</button>
+            <button id="next-step" class="btn btn-primary" style="border: none">Next Step</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        let customerCount = 0
+        let merchantCount = -1
+        let bankCount = -1
+        let currentTab = $('#customer')
+
+        $('.nav-item').click(function (e) {
+            if (e.target.classList.contains('customer-tab')) {
+                currentTab = $('#customer')
+            } else if (e.target.classList.contains('merchant-tab')) {
+                currentTab = $('#merchant')
+            } else if (e.target.classList.contains('bank-tab')) {
+                currentTab = $('#bank')
+            }
+        })
+
+
+        fetchDataAndRenderTab(currentTab, 'customer', ++customerCount)
+
+        $('#next-step').click(function () {
+            if (currentTab.get(0).id === 'customer' && customerCount < 7) {
+                if (customerCount === 5 && merchantCount === -1) {
+                    fetchDataAndRenderTab($('#merchant'), 'merchant', ++merchantCount)
+                }
+                fetchDataAndRenderTab(currentTab, 'customer', ++customerCount)
+            } else if (currentTab.get(0).id === 'merchant' && merchantCount < 5) {
+                if (merchantCount === 3 && bankCount === -1) {
+                    fetchDataAndRenderTab($('#bank'), 'bank', ++bankCount)
+                }
+                fetchDataAndRenderTab(currentTab, 'merchant', ++merchantCount)
+            } else if (currentTab.get(0).id === 'bank' && bankCount < 6) {
+                fetchDataAndRenderTab(currentTab, 'bank', ++bankCount)
+            }
+        })
+
+        $('#previous-step').click(function () {
+            if (currentTab.get(0).id === 'customer' && customerCount > 1) {
+                fetchDataAndRenderTab(currentTab, 'customer', --customerCount)
+            } else if (currentTab.get(0).id === 'merchant' && merchantCount >= 1) {
+                fetchDataAndRenderTab(currentTab, 'merchant', --merchantCount)
+            } else if (currentTab.get(0).id === 'bank' && bankCount >= 1) {
+                fetchDataAndRenderTab(currentTab, 'bank', --bankCount)
+            }
+        })
+    });
+
+    function fetchDataAndRenderTab(currentTab, tabName, number) {
+        $.get('http://localhost:8080/' + tabName + '/step/' + number, function (response) {
+            removeAllChildNodes(currentTab.get(0))
+            currentTab.append(renderTitle(response.title))
+            currentTab.append(renderContent(response.originalContent, response.transformedContent))
+
+            if (response.result !== null) {
+                currentTab.append(renderResult(response.result))
+            }
+        })
+    }
+
+    function renderContent(originalContent, transformedContent) {
+        let divElement = document.createElement("div")
+        divElement.classList.add('row', 'justify-content-around', 'mt-5')
+
+
+        if (originalContent !== "") {
+            let originalElement = document.createElement('textarea')
+            originalElement.style.border = '1.5px solid rgba(155,155,155,0.5)'
+            originalElement.style.padding = '3px 5px'
+            originalElement.style.maxWidth = '400px'
+            originalElement.style.minHeight = '200px'
+            originalElement.style.color = '#00b9f1'
+            originalElement.style.backgroundColor = '#f5f5f5'
+            originalElement.classList.add('col', 'overflow-auto')
+            originalElement.setAttribute('readonly', '')
+            originalElement.append(document.createTextNode(originalContent))
+            divElement.appendChild(originalElement)
+        }
+
+        if (transformedContent !== "") {
+            let transformedElement = document.createElement('textarea')
+            transformedElement.style.border = '1.5px solid rgba(155,155,155,0.5)'
+            transformedElement.style.padding = '3px 5px'
+            transformedElement.style.maxWidth = '400px'
+            transformedElement.style.minHeight = '200px'
+            transformedElement.style.color = '#fb015b'
+            transformedElement.style.backgroundColor = '#f5f5f5'
+            transformedElement.classList.add('col', 'overflow-auto')
+            transformedElement.setAttribute('readonly', '')
+            transformedElement.append(document.createTextNode(transformedContent))
+            divElement.appendChild(transformedElement)
+        }
+
+        return divElement;
+    }
+
+    function renderTitle(title) {
+        let titleElement = document.createElement('h5')
+        titleElement.append(document.createTextNode(title))
+        return titleElement;
+    }
+
+    function renderResult(result) {
+        let resultElement = document.createElement('h5')
+        resultElement.append(document.createTextNode("   " + result))
+        resultElement.style.color = "#00b9f1"
+        resultElement.classList.add('mt-4', 'mb-5', 'text-center')
+
+        return resultElement
+    }
+
+    function removeAllChildNodes(parent) {
+        while (parent.firstChild) {
+            parent.removeChild(parent.firstChild);
+        }
+    }
+</script>
+</body>
+</html>

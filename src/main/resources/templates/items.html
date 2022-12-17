@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SET</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <script type="text/javascript" th:src="@{/webjars/jquery/jquery.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/bootstrap/js/bootstrap.min.js}"></script>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col m-5" style="max-width: 500px;">
+            <div class="row mt-5 text-center">
+                <h1><b>Checkout</b></h1>
+            </div>
+            <form>
+                <div class="row mt-5 mb-5">
+                    <div class="col">
+                        <input id="card-number" type="text" class="form-control" placeholder="Card number">
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col">
+                        <input id="cvv" type="text" class="form-control" placeholder="CVV">
+                    </div>
+                    <div class="col">
+                        <input id="expiry-date" type="text" class="form-control" placeholder="Expiry date">
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-5" style="margin-left: 130px; padding: 3px 15px">
+                <a id="buy-now-btn" href="http://localhost:8080/calc" class="btn btn-primary"
+                   style="background-color: #d63aff; border: none">Complete Checkout</a>
+            </div>
+        </div>
+
+        <div class="col m-5">
+            <div class="card text-center" style="width: 20rem; border: 3px solid rgba(155,155,155,0.5);">
+                <img class="card-img-top" th:src="@{/images/iPhone_14_Pro_Max.jpeg}" alt="iPhone 14 Pro Max">
+                <div class="card-body">
+                    <p class="card-title"><b>Apple iPhone 14 Pro Max</b></p>
+                    <p class="card-text">Color: Deep Purple</p>
+                    <p class="card-text"><b>Total: $1099</b></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#buy-now-btn').click(function (e) {
+            e.preventDefault()
+            let body = {
+                orderInfo: {
+                    itemName: "iPhone 14 Pro Max",
+                    total: 1099.0
+                },
+                paymentInfo: {
+                    cardNumber: $('#card-number').get(0).value.trim(),
+                    cvv: parseInt($('#cvv').get(0).value.trim()),
+                    expiryDate: $('#expiry-date').get(0).value.trim(),
+                    total: 1099.0
+                }
+            }
+            console.log(body)
+            $.ajax({
+                url: 'http://localhost:8080/customer',
+                type: 'POST',
+                data: JSON.stringify(body),
+                contentType: 'application/json; charset=utf-8',
+            }).done(function (res) {
+                console.log(res)
+            })
+
+            $.ajax({
+                url: 'http://localhost:8080/customer',
+                type: 'POST',
+                data: JSON.stringify(body),
+                contentType: 'application/json; charset=utf-8',
+            }).done(function (res) {
+                $.ajax({
+                    url: 'http://localhost:8080/merchant',
+                    type: 'POST',
+                    data: JSON.stringify(res),
+                    contentType: 'application/json; charset=utf-8',
+                }).done(function (res) {
+                    let body = {
+                        dualSignature: res.dualSignature,
+                        encryptedMessageToBank: res.encryptedMessageToBank,
+                        encryptedSessionKey: res.encryptedSessionKey,
+                        customerCert: res.customerCert
+                    }
+
+                    $.ajax({
+                        url: 'http://localhost:8080/bank',
+                        type: 'POST',
+                        data: JSON.stringify(body),
+                        contentType: 'application/json; charset=utf-8',
+                    }).done(function (res) {
+                        window.location = 'http://localhost:8080/calc'
+                    })
+                })
+            })
+        })
+
+    })
+</script>
+</body>
+</html>
